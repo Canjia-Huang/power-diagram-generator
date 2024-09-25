@@ -2,12 +2,35 @@
 
 #include <fstream>
 
-int main() {
+using namespace PowerDiagramGenerator;
 
-	PowerDiagramGenerator::Cell cell(1, 1, 1);
+int main() {
+	std::string data_path = "..//..//data//";
+
+	std::vector<Point> points;
+	read_pointcloud(data_path + "TEST.xyz", points);
+
+	std::vector<std::vector<int>> neighbors;
+	const double radis = 0.03;
+	get_neighbors(
+		points,
+		radis,
+		neighbors
+	);
+	std::vector<Cell*> PCs;
+	generate_power_diagram(
+		points,
+		2 * radis,
+		neighbors,
+		PCs
+	);
+
+	return 1;
+	/*
+	Cell cell(1, 1, 1);
 	cell.init_cube(0.5);
 
-	std::list<PowerDiagramGenerator::Point> points;
+	std::list<Point> points;
 	std::list<std::pair<int, int>> edges;
 	cell.output_Cell(points, edges);
 
@@ -20,5 +43,5 @@ int main() {
 	}
 	out.close();
 
-	return 1;
+	return 1;*/
 }
