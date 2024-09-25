@@ -1,2 +1,4 @@
 # power-diagram
 A lightweight and user-friendly program for computing the (restricted) power diagram.
+
+programming
