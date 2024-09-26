@@ -3,8 +3,9 @@
 
 #ifdef POWER_DIAGRAM_GENERATOR_DEBUG
 #define OUTPUT_PATH			"..//..//data//"
-// #define OUTPUT_NEIGHBORS	"Neighbors"
-#define OUTPUT_POWER_CELLS	"Power_Cells"
+// #define OUTPUT_NEIGHBORS		"DEBUG_Neighbors"
+#define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
+#define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
 #endif
 
 #ifdef POWER_DIAGRAM_GENERATOR_VERBOSE
@@ -22,6 +23,7 @@
 #include <tuple>
 #include <list>
 #include <map>
+#include <set>
 #include <unordered_set>
 #include <string>
 
@@ -32,6 +34,7 @@ typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double,
 
 #define PD_EPS 1e-12
 #define PD_MAX 1e12
+#define PD_SQRT_3 1.7320508075689
 
 namespace PowerDiagramGenerator {
 	struct pair_hash {
@@ -42,52 +45,59 @@ namespace PowerDiagramGenerator {
 			return h1 ^ h2;
 		}
 	};
+	enum MODE {
+		VORONOI_DIAGRAM		= 0,
+		POWER_DIAGRAM		= 1,
+		BOUNDING_BOX		= 2,
+		EXACT_CALCULATION	= 4
+	};
 
 	class Point {
 	public:
 		Point() {
-			x_ = 0;
-			y_ = 0;
-			z_ = 0;
+			cor_[0] = 0;
+			cor_[1] = 0;
+			cor_[2] = 0;
 			w_ = 0;
 		}
 		~Point() {
-			x_ = 0;
-			y_ = 0;
-			z_ = 0;
+			cor_[0] = 0;
+			cor_[1] = 0;
+			cor_[2] = 0;
 			w_ = 0;
 		}
 		Point(
 			double x,  double y, double z) {
-			x_ = x;
-			y_ = y;
-			z_ = z;
+			cor_[0] = x;
+			cor_[1] = y;
+			cor_[2] = z;
 			w_ = 0;
 		}
 		Point(
 			double x, double y, double z, double w) {
-			x_ = x;
-			y_ = y;
-			z_ = z;
+			cor_[0] = x;
+			cor_[1] = y;
+			cor_[2] = z;
 			w_ = w;
 		}
-		double& x() { return x_; }
-		double& y() { return y_; }
-		double& z() { return z_; }
+		double& x() { return cor_[0]; }
+		double& y() { return cor_[1]; }
+		double& z() { return cor_[2]; }
+		double* cor() { return cor_; }
 		double& w() { return w_; }
 		bool operator <(const Point& p) const {
-			if ((x_ - p.x_) < PD_EPS && (x_ - p.x_) > -PD_EPS) {
-				if ((y_ - p.y_) < PD_EPS && (y_ - p.y_) > -PD_EPS) {
-					return (z_ < p.z_);
+			if ((cor_[0] - p.cor_[0]) < PD_EPS && (cor_[0] - p.cor_[0]) > -PD_EPS) {
+				if ((cor_[1] - p.cor_[1]) < PD_EPS && (cor_[1] - p.cor_[1]) > -PD_EPS) {
+					return (cor_[2] < p.cor_[2]);
 				}
-				return (y_ < p.y_);
+				return (cor_[1] < p.cor_[1]);
 			}
-			return (x_ < p.x_);
+			return (cor_[0] < p.cor_[0]);
 		}
 		bool operator ==(const Point& p) const {
-			if ((x_ - p.x_) < PD_EPS && (x_ - p.x_) > -PD_EPS) {
-				if ((y_ - p.y_) < PD_EPS && (y_ - p.y_) > -PD_EPS) {
-					if ((z_ - p.z_) < PD_EPS && (z_ - p.z_) > -PD_EPS) {
+			if ((cor_[0] - p.cor_[0]) < PD_EPS && (cor_[0] - p.cor_[0]) > -PD_EPS) {
+				if ((cor_[1] - p.cor_[1]) < PD_EPS && (cor_[1] - p.cor_[1]) > -PD_EPS) {
+					if ((cor_[2] - p.cor_[2]) < PD_EPS && (cor_[2] - p.cor_[2]) > -PD_EPS) {
 						return true;
 					}
 				}
@@ -96,38 +106,36 @@ namespace PowerDiagramGenerator {
 		}
 		Point operator *(double s) {
 			Point rp;
-			rp.x_ = s * this->x_;
-			rp.y_ = s * this->y_;
-			rp.z_ = s * this->z_;
+			rp.cor_[0] = s * this->cor_[0];
+			rp.cor_[1] = s * this->cor_[1];
+			rp.cor_[2] = s * this->cor_[2];
 			return rp;
 		}
 		Point operator +(const Point& p) {
 			Point rp;
-			rp.x_ = this->x_ + p.x_;
-			rp.y_ = this->y_ + p.y_;
-			rp.z_ = this->z_ + p.z_;
+			rp.cor_[0] = this->cor_[0] + p.cor_[0];
+			rp.cor_[1] = this->cor_[1] + p.cor_[1];
+			rp.cor_[2] = this->cor_[2] + p.cor_[2];
 			return rp;
 		}
 		Point operator -(const Point& p) {
 			Point rp;
-			rp.x_ = this->x_ - p.x_;
-			rp.y_ = this->y_ - p.y_;
-			rp.z_ = this->z_ - p.z_;
+			rp.cor_[0] = this->cor_[0] - p.cor_[0];
+			rp.cor_[1] = this->cor_[1] - p.cor_[1];
+			rp.cor_[2] = this->cor_[2] - p.cor_[2];
 			return rp;
 		}
 		void operator =(const Point& p) {
-			this->x_ = p.x_;
-			this->y_ = p.y_;
-			this->z_ = p.z_;
+			this->cor_[0] = p.cor_[0];
+			this->cor_[1] = p.cor_[1];
+			this->cor_[2] = p.cor_[2];
 			this->w_ = p.w_;
 		}
 		double dot(const Point& p) {
-			return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
+			return cor_[0] * p.cor_[0] + cor_[1] * p.cor_[1] + cor_[2] * p.cor_[2];
 		}
 	protected:
-		double x_;
-		double y_;
-		double z_;
+		double cor_[3];
 		double w_;
 	}; // class Point
 
@@ -171,10 +179,10 @@ namespace PowerDiagramGenerator {
 
 		bool is_on_positive_side(
 			double x, double y, double z) const {
-			return (sign_distance(x, y, z) > 0);
+			return (sign_distance(x, y, z) > PD_EPS);
 		}
 		bool is_on_positive_side(Point& p) const {
-			return (sign_distance(p.x(), p.y(), p.z()) > 0);
+			return (sign_distance(p.x(), p.y(), p.z()) > PD_EPS);
 		}
 	protected:
 		double a_;
@@ -264,6 +272,31 @@ namespace PowerDiagramGenerator {
 			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(1, 2, 5), Point(cx_ - r, cy_ + r, cz_ - r)));
 			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(3, 1, 5), Point(cx_ - r, cy_ - r, cz_ - r)));
 			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(0, 3, 5), Point(cx_ + r, cy_ - r, cz_ - r)));
+		}
+
+		void init_box(
+			double min_x, double max_x,
+			double min_y, double max_y,
+			double min_z, double max_z) {
+			double center_x = 0.5 * (min_x + max_x);
+			double center_y = 0.5 * (min_y + max_y);
+			double center_z = 0.5 * (min_z + max_z);
+
+			cutted_planes_.emplace_back(CutPlane(max_x, center_y, center_z, 1, 0, 0, -1));
+			cutted_planes_.emplace_back(CutPlane(min_x, center_y, center_z, -1, 0, 0, -1));
+			cutted_planes_.emplace_back(CutPlane(center_x, max_y, center_z, 0, 1, 0, -1));
+			cutted_planes_.emplace_back(CutPlane(center_x, min_y, center_z, 0, -1, 0, -1));
+			cutted_planes_.emplace_back(CutPlane(center_x, center_y, max_z, 0, 0, 1, -1));
+			cutted_planes_.emplace_back(CutPlane(center_x, center_y, min_z, 0, 0, -1, -1));
+
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(0, 2, 4), Point(max_x, max_y, max_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(2, 1, 4), Point(min_x, max_y, max_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(1, 3, 4), Point(min_x, min_y, max_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(3, 0, 4), Point(max_x, min_y, max_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(2, 0, 5), Point(max_x, max_y, min_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(1, 2, 5), Point(min_x, max_y, min_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(3, 1, 5), Point(min_x, min_y, min_z)));
+			cutted_vertices_.emplace_back(std::make_pair(std::tuple<int, int, int>(0, 3, 5), Point(max_x, min_y, min_z)));
 		}
 
 		bool cut_by_plane(const CutPlane& plane) {
@@ -365,12 +398,16 @@ namespace PowerDiagramGenerator {
 					Plane* plane2 = &(cutted_planes_[(*it)]);
 
 					Point cutted_point = get_tri_planes_cutted_point((*plane1), (*plane2), plane);
+					if (isnan(cutted_point.x()) || isnan(cutted_point.y()) || isnan(cutted_point.z()) ||
+						isinf(cutted_point.x()) || isinf(cutted_point.y()) || isinf(cutted_point.z())) {
 
-					cutted_vertices_.emplace_back(
-						std::make_pair(
-							std::make_tuple((*prev_it), (*it), cutted_planes_.size() - 1),
-							cutted_point));
-
+					}
+					else {
+						cutted_vertices_.emplace_back(
+							std::make_pair(
+								std::make_tuple((*prev_it), (*it), cutted_planes_.size() - 1),
+								cutted_point));
+					}
 					prev_it = it;
 				}
 			}
@@ -378,7 +415,7 @@ namespace PowerDiagramGenerator {
 			return true;
 		}
 
-		void output(
+		void output_wireframe(
 			std::vector<Point>& points,
 			std::vector<std::pair<int, int>>& edges) const {
 			std::map<std::pair<int, int>, std::vector<int>> plane_pair_and_vertices;
@@ -406,6 +443,79 @@ namespace PowerDiagramGenerator {
 				}
 			}
 		}
+
+		void output_solid(
+			std::vector<Point>& points,
+			std::vector<std::vector<int>>& faces
+		) {
+			std::map<std::pair<int, int>, int> edge_to_vertex_map;
+			std::vector<std::set<int>> neighbor_planes(cutted_planes_.size());
+			for (auto cv : cutted_vertices_) {
+				int P1 = std::get<0>(cv.first);
+				int P2 = std::get<1>(cv.first);
+				int P3 = std::get<2>(cv.first);
+
+				edge_to_vertex_map[std::make_pair(P1, P2)] = points.size();
+				edge_to_vertex_map[std::make_pair(P2, P3)] = points.size();
+				edge_to_vertex_map[std::make_pair(P3, P1)] = points.size();
+
+				neighbor_planes[P1].insert(P2);
+				neighbor_planes[P1].insert(P3);
+				neighbor_planes[P2].insert(P1);
+				neighbor_planes[P2].insert(P3);
+				neighbor_planes[P3].insert(P1);
+				neighbor_planes[P3].insert(P2);
+
+				points.push_back(cv.second);
+			}
+
+			// get each face's edges
+			faces = std::vector<std::vector<int>>(cutted_planes_.size());
+			for (int i = 0, i_end = cutted_planes_.size(); i < i_end; ++i) {
+				std::list<std::pair<int, int>> edges;
+				for (auto f : neighbor_planes[i]) {
+					int V1 = edge_to_vertex_map[std::make_pair(f, i)];
+					int V2 = edge_to_vertex_map[std::make_pair(i, f)];
+					edges.push_back(std::make_pair(V2, V1)); // from - to
+				}
+				if (edges.size() == 0) continue; // this cut plane is not used now
+
+				// sort edges
+				std::list<std::pair<int, int>> ordered_edges;
+				ordered_edges.push_back(edges.back());
+				edges.pop_back();
+				while (edges.size() > 0) {
+					for (auto ei = edges.begin(); ei != edges.end();) {
+						if ((*ei).second == ordered_edges.front().first) {
+							ordered_edges.push_front(*ei);
+							ei = edges.erase(ei);
+						}
+						else if ((*ei).first == ordered_edges.back().second) {
+							ordered_edges.push_back(*ei);
+							ei = edges.erase(ei);
+						}
+						else {
+							ei++;
+						}
+					}
+				}
+
+				// covert to face
+				for (auto oe : ordered_edges) {
+					faces[i].push_back(oe.first);
+				}
+			}
+
+			// renew faces
+			for (auto fi = faces.begin(); fi != faces.end();) {
+				if ((*fi).size() == 0) {
+					fi = faces.erase(fi);
+				}
+				else {
+					fi++;
+				}
+			}
+		}
 	protected:
 		double cx_;
 		double cy_;
@@ -414,202 +524,273 @@ namespace PowerDiagramGenerator {
 		std::vector<std::pair<std::tuple<int, int, int>, Point>> cutted_vertices_;
 	}; // class Cell
 
-	// other functions
-	int read_pointcloud(
-		std::string file_path,
-		std::vector<Point>& points
-	) {
-		VERBOSE_ONLY_COUT("");
-		points.clear();
-		std::string back = file_path.substr(file_path.length() - 3, file_path.length());
+	class Generator {
+	public:
+		Generator() {};
+		~Generator() {
+			(std::vector<Point>()).swap(points_);
+			(std::vector<Cell*>()).swap(cells_);
+		}
+		Cell& cell(const int i) {
+			return *(cells_[i]);
+		}
 
-		std::ifstream in(file_path);
-		if (!in.good()) {
-			throw "INPUT_FILE_PATH_INVALID";
-			return 0;
-		}
-		if (back == "xyz") { // .xyz
-			std::string sline;
-			while (std::getline(in, sline)) {
-				std::istringstream ins(sline);
-				Point p;
-				ins >> p.x() >> p.y() >> p.z() >> p.w();
-				points.push_back(p);
-			}
-		}
-		else if (back == "obj") { // .obj without weights
-			std::string sline, s0;
-			std::string vertex_char = "v";
-			std::string face_char = "f";
-			while (std::getline(in, sline)) {
-				std::istringstream ins(sline);
-				ins >> s0;
+		int read_pointcloud(
+			std::string file_path
+		) {
+			VERBOSE_ONLY_COUT("");
+			(std::vector<Point>()).swap(points_);
+			std::string back = file_path.substr(file_path.length() - 3, file_path.length());
 
-				if (s0 == vertex_char) {
-					Point p;
-					ins >> p.x() >> p.y() >> p.z();
-					points.push_back(p);
-				}
-			}
-		}
-		else if (back == "off") { // .off without weights
-			int vertex_num;
-			int face_num;
-			int edge_num;
-			int s;
+			std::ifstream in(file_path);
 			if (!in.good()) {
+				throw "INPUT_FILE_PATH_INVALID";
 				return 0;
 			}
-			do {
-				in.get();
-			} while (in.get() != '\n');
-
-			in >> vertex_num >> face_num >> edge_num;
-			for (int i = 0; i < vertex_num; i++) {
-				Point p;
-				in >> p.x() >> p.y() >> p.z();
-				points.push_back(p);
-			}
-		}
-		else {
-			throw "INPUT_FILE_TYPE_INVALID";
-			return 0;
-		}
-		in.close();
-
-		return 1;
-	}
-
-	int get_neighbors(
-		std::vector<Point>& points,
-		const double radis,
-		std::vector<std::vector<int>>& neighbors
-	) {
-		VERBOSE_ONLY_COUT("");
-		int points_nb = points.size();
-
-		// build kd-tree cloud
-		PointCloud<double> cloud;
-		cloud.pts.resize(points_nb);
-		for (int i = 0; i < points_nb; ++i) {
-			cloud.pts[i].x = points[i].x();
-			cloud.pts[i].y = points[i].y();
-			cloud.pts[i].z = points[i].z();
-		}
-		my_kd_tree_t index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-
-		// get neighbors
-		neighbors.reserve(points_nb);
-		for (int i = 0; i < points_nb; ++i) {
-			double query[3] = { points[i].x(), points[i].y(), points[i].z() };
-
-			std::vector<std::pair<uint32_t, double>> ret_matches;
-			nanoflann::SearchParams params;
-			const double search_radius = static_cast<double>(radis * radis);
-			const size_t nMatches = index.radiusSearch(&query[0], search_radius, ret_matches, params);
-
-			for (int j = 0; j < nMatches; ++j) {
-				int nei_j = ret_matches[j].first;
-				if (i != nei_j) {
-					neighbors[i].push_back(nei_j);
+			if (back == "xyz") { // .xyz
+				std::string sline;
+				while (std::getline(in, sline)) {
+					std::istringstream ins(sline);
+					Point p;
+					ins >> p.x() >> p.y() >> p.z() >> p.w();
+					points_.push_back(p);
 				}
 			}
-		}
+			else if (back == "obj") { // .obj without weights
+				std::string sline, s0;
+				std::string vertex_char = "v";
+				std::string face_char = "f";
+				while (std::getline(in, sline)) {
+					std::istringstream ins(sline);
+					ins >> s0;
 
-#ifdef OUTPUT_NEIGHBORS
-		{
-			VERBOSE_ONLY_COUT("output neighbors");
-			std::ofstream out(std::string(OUTPUT_PATH) + std::string(OUTPUT_NEIGHBORS) + ".obj");
-			for (int i = 0; i < points_nb; ++i) {
-				out << "v" << " " << points[i].x() << " " << points[i].y() << " " << points[i].z() << std::endl;
-			}
-			std::map<std::pair<int, int>, bool> edge_map;
-			for (int i = 0; i < points_nb; ++i) {
-				for (int j = 0, j_end = neighbors[i].size(); j < j_end; ++j) {
-					std::pair<int, int> edge(std::min(i, neighbors[i][j]), std::max(i, neighbors[i][j]));
-					if (edge_map.find(edge) == edge_map.end()) {
-						out << "l" << " " << edge.first + 1 << " " << edge.second + 1 << std::endl;
-						edge_map[edge] = true;
+					if (s0 == vertex_char) {
+						Point p;
+						ins >> p.x() >> p.y() >> p.z();
+						points_.push_back(p);
 					}
 				}
 			}
-			out.close();
+			else if (back == "off") { // .off without weights
+				int vertex_num;
+				int face_num;
+				int edge_num;
+				int s;
+				if (!in.good()) {
+					return 0;
+				}
+				do {
+					in.get();
+				} while (in.get() != '\n');
+
+				in >> vertex_num >> face_num >> edge_num;
+				for (int i = 0; i < vertex_num; i++) {
+					Point p;
+					in >> p.x() >> p.y() >> p.z();
+					points_.push_back(p);
+				}
+			}
+			else {
+				throw "INPUT_FILE_TYPE_INVALID";
+				return 0;
+			}
+			in.close();
+
+			return 1;
 		}
-#endif
 
-		return 1;
-	}
+		int get_neighbors(
+			const double sq_radis,
+			std::vector<std::vector<int>>& neighbors
+		) { // disuse
+			VERBOSE_ONLY_COUT("");
+			int points_nb = points_.size();
 
-	int generate_power_diagram(
-		std::vector<Point>& points,
-		const double radis,
-		const std::vector<std::vector<int>>& neighbors,
-		std::vector<Cell*>& PCs
-	) {
-		VERBOSE_ONLY_COUT("");
-		int points_nb = points.size();
-		PCs = std::vector<Cell*>(points_nb);
+			// build kd-tree cloud
+			PointCloud<double> cloud;
+			cloud.pts.resize(points_nb);
+			for (int i = 0; i < points_nb; ++i) {
+				cloud.pts[i].x = points_[i].x();
+				cloud.pts[i].y = points_[i].y();
+				cloud.pts[i].z = points_[i].z();
+			}
+			my_kd_tree_t index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
 
-// #pragma omp parallel for
-		for (int vi = 0; vi < points_nb; ++vi) {
-			if (vi > 30) break;
-			if (vi % 1 == 0) VERBOSE_ONLY_COUT("process:" << " " << vi);
+			// get neighbors
+			neighbors.clear();
+			neighbors.reserve(points_nb);
+			for (int i = 0; i < points_nb; ++i) {
+				double query[3] = { points_[i].x(), points_[i].y(), points_[i].z() };
 
-			Cell* PC = new Cell(points[vi]);
-			PC->init_cube(radis);
+				std::vector<std::pair<uint32_t, double>> ret_matches;
+				nanoflann::SearchParams params;
+				const double search_radius = static_cast<double>(sq_radis);
+				const size_t nMatches = index.radiusSearch(&query[0], search_radius, ret_matches, params);
 
-			for (int j = 0, j_end = neighbors[vi].size(); j < j_end; ++j) {
-				int ni = neighbors[vi][j];
-
-				double sq_dis = 
-					(points[vi].x() - points[ni].x()) * (points[vi].x() - points[ni].x()) + 
-					(points[vi].y() - points[ni].y()) * (points[vi].y() - points[ni].y()) +
-					(points[vi].z() - points[ni].z()) * (points[vi].z() - points[ni].z());
-				if (sq_dis < PD_EPS) continue;
-
-				double lambda = 0.5 + 0.5 * (points[vi].w() * points[vi].w() - points[ni].w() * points[ni].w()) / sq_dis;
-				Point mid_point = (points[vi] * lambda) + (points[ni] * (1 - lambda));
-				Point dir = points[ni] - points[vi];
-				/*VERBOSE_ONLY_COUT(points[vi].x() << " " << points[vi].y() << " " << points[vi].z());
-				VERBOSE_ONLY_COUT(points[ni].x() << " " << points[ni].y() << " " << points[ni].z());
-				VERBOSE_ONLY_COUT(lambda);
-				VERBOSE_ONLY_COUT(mid_point.x() << " " << mid_point.y() << " " << mid_point.z());
-				VERBOSE_ONLY_COUT(dir.x() << " " << dir.y() << " " << dir.z());*/
-				PC->cut_by_plane(CutPlane(
-					mid_point,
-					dir,
-					ni));
+				for (int j = 0; j < nMatches; ++j) {
+					int nei_j = ret_matches[j].first;
+					if (i != nei_j) {
+						neighbors[i].push_back(nei_j);
+					}
+				}
 			}
 
-			PCs[vi] = PC;
+#ifdef OUTPUT_NEIGHBORS
+			{
+				VERBOSE_ONLY_COUT("output neighbors");
+				std::ofstream out(std::string(OUTPUT_PATH) + std::string(OUTPUT_NEIGHBORS) + ".obj");
+				for (int i = 0; i < points_nb; ++i) {
+					out << "v" << " " << points[i].x() << " " << points[i].y() << " " << points[i].z() << std::endl;
+				}
+				std::map<std::pair<int, int>, bool> edge_map;
+				for (int i = 0; i < points_nb; ++i) {
+					for (int j = 0, j_end = neighbors[i].size(); j < j_end; ++j) {
+						std::pair<int, int> edge(std::min(i, neighbors[i][j]), std::max(i, neighbors[i][j]));
+						if (edge_map.find(edge) == edge_map.end()) {
+							out << "l" << " " << edge.first + 1 << " " << edge.second + 1 << std::endl;
+							edge_map[edge] = true;
+						}
+					}
+				}
+				out.close();
+			}
+#endif
+
+			return 1;
 		}
 
-		std::vector<Point> ppoints;
-		std::vector<std::pair<int, int>> pedges;
-		PCs[0]->output(ppoints, pedges);
+		int generate_diagram(
+			const double radis,
+			int mode
+		) {
+			VERBOSE_ONLY_COUT("");
+			int points_nb = points_.size();
+			cells_ = std::vector<Cell*>(points_nb);
+			nanoflann::SearchParams params;
 
-		std::ofstream out(std::string(OUTPUT_PATH) + "test.obj");
-		for (auto p : ppoints) {
-			out << "v " << p.x() << " " << p.y() << " " << p.z() << std::endl;
-		}
-		for (auto e : pedges) {
-			out << "l " << e.first + 1 << " " << e.second + 1 << std::endl;
-		}
-		out.close();
+			// get bounding box
+			double* box = new double[6];
+			if (mode & BOUNDING_BOX == BOUNDING_BOX) {
+				box = get_bounding_box(radis);
+			}
 
-#ifdef OUTPUT_POWER_CELLS
-		{
-			VERBOSE_ONLY_COUT("output power cells");
-			std::ofstream out(std::string(OUTPUT_PATH) + std::string(OUTPUT_POWER_CELLS) + ".obj");
+			// get maximum and minimum weights
+			double sq_search_radis = 0;
+			if (mode & EXACT_CALCULATION == EXACT_CALCULATION) {
+				sq_search_radis = PD_MAX;
+			}
+			else {
+				double max_w = -PD_MAX;
+				double min_w = PD_MAX;
+				for (int i = 0; i < points_nb; ++i) {
+					max_w = std::max(max_w, points_[i].w());
+					min_w = std::min(min_w, points_[i].w());
+				}
+				sq_search_radis = radis * radis - max_w * max_w + min_w * min_w;
+				if (sq_search_radis < 0) {
+					throw "radius setting invalid";
+					return 0;
+				}
+				sq_search_radis = radis + sqrt(sq_search_radis);
+				sq_search_radis *= sq_search_radis;
+			}
+			const double search_radius = static_cast<double>(sq_search_radis);
+			VERBOSE_ONLY_COUT("sq_search_radis:" << " " << sq_search_radis);
+
+			// build kd-tree cloud
+			PointCloud<double> cloud;
+			cloud.pts.resize(points_nb);
+			for (int i = 0; i < points_nb; ++i) {
+				cloud.pts[i].x = points_[i].x();
+				cloud.pts[i].y = points_[i].y();
+				cloud.pts[i].z = points_[i].z();
+			}
+			my_kd_tree_t index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+
+#pragma omp parallel for
+			for (int vi = 0; vi < points_nb; ++vi) {
+				if (vi % 1000 == 0) VERBOSE_ONLY_COUT("process:" << " " << vi);
+
+				Cell* PC = new Cell(points_[vi]);
+				if (mode & BOUNDING_BOX == BOUNDING_BOX) {
+					PC->init_box(box[0], box[1], box[2], box[3], box[4], box[5]);
+				}
+				else {
+					PC->init_cube(radis);
+				}
+
+				// get neighbors
+				std::vector<std::pair<uint32_t, double>> ret_matches;
+				const size_t nMatches = index.radiusSearch(points_[vi].cor(), search_radius, ret_matches, params);
+
+				for (int j = 0; j < nMatches; ++j) {
+					int ni = ret_matches[j].first;
+					if (vi == ni) continue;
+
+					double sq_dis =
+						(points_[vi].x() - points_[ni].x()) * (points_[vi].x() - points_[ni].x()) +
+						(points_[vi].y() - points_[ni].y()) * (points_[vi].y() - points_[ni].y()) +
+						(points_[vi].z() - points_[ni].z()) * (points_[vi].z() - points_[ni].z());
+					if (sq_dis < PD_EPS) continue;
+
+					double lambda = 0.5;
+					if (mode & POWER_DIAGRAM == POWER_DIAGRAM) {
+						lambda += 0.5 * (points_[vi].w() * points_[vi].w() - points_[ni].w() * points_[ni].w()) / sq_dis;
+					}
+					Point mid_point = (points_[vi] * lambda) + (points_[ni] * (1 - lambda));
+					Point dir = points_[ni] - points_[vi];
+					if (PC->cut_by_plane(CutPlane(
+						mid_point,
+						dir,
+						ni)
+					) == false) {
+						if (mode & POWER_DIAGRAM == VORONOI_DIAGRAM) {
+							break; // only for voronoi
+						}
+					}
+				}
+
+				cells_[vi] = PC;
+			}
+
+			return 1;
+		}
+
+		void output_cell_wireframe(
+			std::string file_path,
+			Cell& cell
+		) {
+			VERBOSE_ONLY_COUT("");
+			std::ofstream out(file_path);
+
+			std::vector<Point> cell_points;
+			std::vector<std::pair<int, int>> cell_edges;
+			cell.output_wireframe(cell_points, cell_edges);
+
+			for (auto cp : cell_points) {
+				out << "v" << " " << cp.x() << " " << cp.y() << " " << cp.z() << " " << "255 255 255" << std::endl;
+			}
+			for (auto ce : cell_edges) {
+				out << "l" << " " << ce.first + 1 << " " << ce.second + 1 << std::endl;
+			}
+			out << "v" << " " << cell.x() << " " << cell.y() << " " << cell.z() << " " << "255 0 0" << std::endl;
+			out.close();
+		}
+
+		void output_cells_wireframe(
+			std::string file_path
+		) {
+			VERBOSE_ONLY_COUT("");
+			std::ofstream out(file_path);
 			std::map<Point, int> point_map;
 			int p_cnt = 0;
-			for (int vi = 0, vi_end = PCs.size(); vi < vi_end; ++vi) {
-				Cell* PC = PCs[vi];
+			for (int vi = 0, vi_end = cells_.size(); vi < vi_end; ++vi) {
+				Cell* PC = cells_[vi];
 
 				if (PC != NULL) {
 					std::vector<Point> cell_points;
 					std::vector<std::pair<int, int>> cell_edges;
-					PC->output(cell_points, cell_edges);
+					PC->output_wireframe(cell_points, cell_edges);
 
 					for (auto cp : cell_points) {
 						if (point_map.find(cp) == point_map.end()) {
@@ -617,24 +798,110 @@ namespace PowerDiagramGenerator {
 							point_map[cp] = p_cnt++;
 						}
 					}
-
 					for (auto ce : cell_edges) {
 						Point* P1 = &(cell_points[ce.first]);
 						Point* P2 = &(cell_points[ce.second]);
 						out << "l" << " " << point_map[*P1] + 1 << " " << point_map[*P2] + 1 << std::endl;
 					}
+					out << "v" << " " << PC->x() << " " << PC->y() << " " << PC->z() << " " << "255 0 0" << std::endl;
+					p_cnt++;
+	}
+			}
+			out.close();
+		}
 
+		void output_cell_solid(
+			std::string file_path,
+			Cell& cell
+		) {
+			VERBOSE_ONLY_COUT("");
+			std::ofstream out(file_path);
+
+			std::vector<Point> cell_points;
+			std::vector<std::vector<int>> cell_faces;
+			cell.output_solid(cell_points, cell_faces);
+
+			for (auto cp : cell_points) {
+				out << "v" << " " << cp.x() << " " << cp.y() << " " << cp.z() << std::endl;
+			}
+			for (auto ce : cell_faces) {
+				out << "f";
+				for (auto ce_v : ce) {
+					out << " " << ce_v + 1;
+				}
+				out << std::endl;
+			}
+			out.close();
+		}
+
+		void output_cells_solid(
+			std::string file_path
+		) {
+			VERBOSE_ONLY_COUT("");
+			std::ofstream out(file_path);
+			std::map<Point, int> point_map;
+			int p_cnt = 0;
+			for (int vi = 0, vi_end = cells_.size(); vi < vi_end; ++vi) {
+				Cell* PC = cells_[vi];
+
+				if (PC != NULL) {
+					std::vector<Point> cell_points;
+					std::vector<std::vector<int>> cell_faces;
+					PC->output_solid(cell_points, cell_faces);
+
+					for (auto cp : cell_points) {
+						if (point_map.find(cp) == point_map.end()) {
+							out << "v" << " " << cp.x() << " " << cp.y() << " " << cp.z() << " " << "255 255 255" << std::endl;
+							point_map[cp] = p_cnt++;
+						}
+					}
+					for (auto cf : cell_faces) {
+						out << "f";
+						for (auto cfv : cf) {
+							Point* P = &(cell_points[cfv]);
+							out << " " << point_map[*P] + 1;
+						}
+						out << std::endl;
+					}
 					out << "v" << " " << PC->x() << " " << PC->y() << " " << PC->z() << " " << "255 0 0" << std::endl;
 					p_cnt++;
 				}
 			}
 			out.close();
 		}
-#endif
+	private:
+		double* get_bounding_box(const double redundancy) {
+			VERBOSE_ONLY_COUT("");
+			int points_nb = points_.size();
 
-		return 1;
-	}
+			double min_x = PD_MAX;
+			double max_x = -PD_MAX;
+			double min_y = PD_MAX;
+			double max_y = -PD_MAX;
+			double min_z = PD_MAX;
+			double max_z = -PD_MAX;
+			for (int i = 0; i < points_nb; ++i) {
+				min_x = std::min(min_x, points_[i].x());
+				max_x = std::max(max_x, points_[i].x());
+				min_y = std::min(min_y, points_[i].y());
+				max_y = std::max(max_y, points_[i].y());
+				min_z = std::min(min_z, points_[i].z());
+				max_z = std::max(max_z, points_[i].z());
+			}
 
+			double* res = new double[6];
+			res[0] = min_x - redundancy;
+			res[1] = max_x + redundancy;
+			res[2] = min_y - redundancy;
+			res[3] = max_y + redundancy;
+			res[4] = min_z - redundancy;
+			res[5] = max_z + redundancy;
+			return res;
+		}
+	private:
+		std::vector<Point> points_;
+		std::vector<Cell*> cells_;
+	};
 } // namespace PowerDiagramGenerator
 
 #endif

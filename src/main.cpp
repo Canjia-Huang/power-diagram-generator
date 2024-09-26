@@ -7,23 +7,12 @@ using namespace PowerDiagramGenerator;
 int main() {
 	std::string data_path = "..//..//data//";
 
-	std::vector<Point> points;
-	read_pointcloud(data_path + "TEST.xyz", points);
 
-	std::vector<std::vector<int>> neighbors;
-	const double radis = 0.03;
-	get_neighbors(
-		points,
-		radis,
-		neighbors
-	);
-	std::vector<Cell*> PCs;
-	generate_power_diagram(
-		points,
-		2 * radis,
-		neighbors,
-		PCs
-	);
+	Generator G;
+	G.read_pointcloud(data_path + "TEST.xyz");
+	G.generate_diagram(0.05, MODE::POWER_DIAGRAM | MODE::BOUNDING_BOX | MODE::EXACT_CALCULATION);
+	G.output_cells_wireframe("..//..//data//cell_wireframe.obj");
+	G.output_cells_solid("..//..//data//cell_solid.obj");
 
 	return 1;
 	/*
