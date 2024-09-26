@@ -3,9 +3,9 @@
 
 #ifdef POWER_DIAGRAM_GENERATOR_DEBUG
 #define OUTPUT_PATH			"..//..//data//"
-// #define OUTPUT_NEIGHBORS		"DEBUG_Neighbors"
-#define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
-#define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
+// #define OUTPUT_NEIGHBORS			"DEBUG_Neighbors"
+//#define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
+// #define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
 #endif
 
 #ifdef POWER_DIAGRAM_GENERATOR_VERBOSE
@@ -13,8 +13,6 @@
 #else
 #	define VERBOSE_ONLY_COUT(x)
 #endif
-
-#include "Time_count.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -46,8 +44,8 @@ namespace PowerDiagramGenerator {
 		}
 	};
 	enum MODE {
-		VORONOI_DIAGRAM		= 0,
-		POWER_DIAGRAM		= 1,
+		POWER_DIAGRAM		= 0,
+		VORONOI_DIAGRAM		= 1,
 		BOUNDING_BOX		= 2,
 		EXACT_CALCULATION	= 4
 	};
@@ -544,7 +542,7 @@ namespace PowerDiagramGenerator {
 
 			std::ifstream in(file_path);
 			if (!in.good()) {
-				throw "INPUT_FILE_PATH_INVALID";
+				throw std::runtime_error("read input file error!");
 				return 0;
 			}
 			if (back == "xyz") { // .xyz
@@ -577,6 +575,7 @@ namespace PowerDiagramGenerator {
 				int edge_num;
 				int s;
 				if (!in.good()) {
+					throw std::runtime_error("read input file error!");
 					return 0;
 				}
 				do {
@@ -591,7 +590,7 @@ namespace PowerDiagramGenerator {
 				}
 			}
 			else {
-				throw "INPUT_FILE_TYPE_INVALID";
+				throw std::runtime_error("input file type invalid!");
 				return 0;
 			}
 			in.close();
