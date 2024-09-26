@@ -1,46 +1,69 @@
 #ifndef OPTIONS_HPP_
 #define OPTIONS_HPP_
 
+#define OUTPUT_PATH			"D://C_Project//power-diagram//data//"
+
 #include <map>
 
 namespace PowerDiagramGenerator {
 	class Options {
 	public:
-		bool visual;
+		bool showHelp;
 		bool exact;
 		bool voronoi;
 		bool bounding;
-		bool showHelp;
+		bool timecount;
 		double r;
 		std::string output_path;
+		std::vector<std::string> outputList;
+		std::vector<std::string> visualList;
 	public:
 		Options()
-		: visual(false)
+		: showHelp(false)
 		, exact(false)
 		, voronoi(false)
 		, bounding(false)
-		, showHelp(false)
+		, timecount(false)
 		, r(0)
-		, output_path() 
+		, output_path(OUTPUT_PATH)
 		{
 			boolArgsMap = {
-				{"-vis", &visual},
-				{"-exact", &exact},
-				{"-voronoi", &voronoi},
-				{"-bounding", &bounding},
 				{"-help", &showHelp}, {"-h", &showHelp},
+				{"-exact", &exact},
+				{"-voronoi", &voronoi}, {"-vor", &voronoi},
+				{"-bounding", &bounding}, {"-box", &bounding},
+				{"-timecount", &timecount}, {"-tc", &timecount}
+			};
+			intArgsMap = {
 			};
 			doubleArgsMap = {
 				{"-r", &r},
 			};
 			stringArgsMap = {
-				{"-output", &output_path}, {"-o", &output_path}
+				{"-path", &output_path}, {"-op", &output_path}, {"-p", &output_path},
 			};
 		}
 
 		void showOptions(std::ostream& o) const {
 			o << "\tOPTIONS:\n";
-			o << "\t--help|-h: show this help\n";
+			o << "\t-help|-h: show this help\n";
+			o << "\t-exact: exactly compute the power diagram, it may result in an increase in computational overhead\n";
+			o << "\t-voronoi|-vor: compute the voronoi diagram\n";
+			o << "\t-bounding|-box: initialize the initial box for each point as the bounding box of the entire point cloud\n";
+			o << "\t-r=[double]: set the radius of the initial box for each point [default 0]\n";
+			o << "\n";
+			o << "\t---------- output ----------\n";
+			o << "\t-output|-o=type: generate the output of the power diagram in the form of the specified data type\n";
+			o << "\t\tconnection|c: the connectivity relationships between the points\n";
+			o << "\n";
+			o << "\t---------- visual ----------\n";
+			o << "\t-visual|-vis|-v=type: generate the visual output of the power diagram in the form of the specified data type.obj\n";
+			o << "\t\twireframe|wire|w: the wireframe of power cells\n";
+			o << "\t\tsolid|s: the solid of power cells\n";
+			o << "\t\tconnection|c: the connectivity relationships between the points\n";
+			o << "\n";
+			o << "\t-path|-op|-p=[string]: set the output path [default ..//..//data//]\n";
+			o << "\t-timecount|-tc: Output the time count information\n";
 			o << "\n";
 		}
 
@@ -80,6 +103,15 @@ namespace PowerDiagramGenerator {
 			if (stringIt != stringArgsMap.end()) {
 				if (arg.empty() && i + 1 >= argc) return false;
 				*stringIt->second = arg.empty() ? argv[++i] : arg.c_str();
+				return true;
+			}
+
+			if ((option == "-output" || option == "-o") && (!arg.empty() || i + 1 < argc)) {
+				outputList.push_back(arg.empty() ? argv[++i] : arg.c_str());
+				return true;
+			}
+			if ((option == "-visual" || option == "-vis" || option == "-v") && (!arg.empty() || i + 1 < argc)) {
+				visualList.push_back(arg.empty() ? argv[++i] : arg.c_str());
 				return true;
 			}
 

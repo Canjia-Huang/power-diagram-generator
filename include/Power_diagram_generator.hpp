@@ -4,12 +4,13 @@
 #ifdef POWER_DIAGRAM_GENERATOR_DEBUG
 #define OUTPUT_PATH			"..//..//data//"
 // #define OUTPUT_NEIGHBORS			"DEBUG_Neighbors"
-//#define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
+// #define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
 // #define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
 #endif
 
 #ifdef POWER_DIAGRAM_GENERATOR_VERBOSE
-#	define VERBOSE_ONLY_COUT(x) std::cout << __FUNCTION__ << " " << "\033[33m" << x << "\033[0m" << std::endl // white + yellow color
+// #	define VERBOSE_ONLY_COUT(x) std::cout << __FUNCTION__ << " " << "\033[33m" << x << "\033[0m" << std::endl // white + yellow color
+#	define VERBOSE_ONLY_COUT(x) std::cout << __FUNCTION__ << " " << x  << std::endl // white + yellow color
 #else
 #	define VERBOSE_ONLY_COUT(x)
 #endif
@@ -48,6 +49,10 @@ namespace PowerDiagramGenerator {
 		VORONOI_DIAGRAM		= 1,
 		BOUNDING_BOX		= 2,
 		EXACT_CALCULATION	= 4
+	};
+	enum OUTPUT_TYPE {
+		VISUAL,
+		INFO
 	};
 
 	class Point {
@@ -253,6 +258,8 @@ namespace PowerDiagramGenerator {
 		double x() { return cx_; }
 		double y() { return cy_; }
 		double z() { return cz_; }
+		std::vector<CutPlane>& cutted_planes() { return cutted_planes_; }
+		std::vector<std::pair<std::tuple<int, int, int>, Point>>& cutted_vertices() { return cutted_vertices_; }
 
 		void init_cube(double r) {
 			cutted_planes_.emplace_back(CutPlane(cx_ + r, cy_, cz_, 1, 0, 0, -1));
@@ -538,7 +545,7 @@ namespace PowerDiagramGenerator {
 		) {
 			VERBOSE_ONLY_COUT("");
 			(std::vector<Point>()).swap(points_);
-			std::string back = file_path.substr(file_path.length() - 3, file_path.length());
+			std::string back = file_path.substr(file_path.length() - 3);
 
 			std::ifstream in(file_path);
 			if (!in.good()) {
@@ -666,16 +673,20 @@ namespace PowerDiagramGenerator {
 			int points_nb = points_.size();
 			cells_ = std::vector<Cell*>(points_nb);
 			nanoflann::SearchParams params;
+			if (radis < PD_EPS) {
+				mode |= BOUNDING_BOX;
+				mode |= EXACT_CALCULATION;
+			}
 
 			// get bounding box
 			double* box = new double[6];
-			if (mode & BOUNDING_BOX == BOUNDING_BOX) {
+			if (mode & BOUNDING_BOX) {
 				box = get_bounding_box(radis);
 			}
 
 			// get maximum and minimum weights
 			double sq_search_radis = 0;
-			if (mode & EXACT_CALCULATION == EXACT_CALCULATION) {
+			if (mode & EXACT_CALCULATION) {
 				sq_search_radis = PD_MAX;
 			}
 			else {
@@ -686,8 +697,8 @@ namespace PowerDiagramGenerator {
 					min_w = std::min(min_w, points_[i].w());
 				}
 				sq_search_radis = radis * radis - max_w * max_w + min_w * min_w;
-				if (sq_search_radis < 0) {
-					throw "radius setting invalid";
+				if (sq_search_radis < PD_EPS) {
+					throw std::runtime_error("radius or weights setting invalid");
 					return 0;
 				}
 				sq_search_radis = radis + sqrt(sq_search_radis);
@@ -711,7 +722,7 @@ namespace PowerDiagramGenerator {
 				if (vi % 1000 == 0) VERBOSE_ONLY_COUT("process:" << " " << vi);
 
 				Cell* PC = new Cell(points_[vi]);
-				if (mode & BOUNDING_BOX == BOUNDING_BOX) {
+				if (mode & BOUNDING_BOX) {
 					PC->init_box(box[0], box[1], box[2], box[3], box[4], box[5]);
 				}
 				else {
@@ -732,9 +743,12 @@ namespace PowerDiagramGenerator {
 						(points_[vi].z() - points_[ni].z()) * (points_[vi].z() - points_[ni].z());
 					if (sq_dis < PD_EPS) continue;
 
-					double lambda = 0.5;
-					if (mode & POWER_DIAGRAM == POWER_DIAGRAM) {
-						lambda += 0.5 * (points_[vi].w() * points_[vi].w() - points_[ni].w() * points_[ni].w()) / sq_dis;
+					double lambda;
+					if (mode & VORONOI_DIAGRAM) {
+						lambda = 0.5;
+					}
+					else{
+						lambda = 0.5 + 0.5 * (points_[vi].w() * points_[vi].w() - points_[ni].w() * points_[ni].w()) / sq_dis;
 					}
 					Point mid_point = (points_[vi] * lambda) + (points_[ni] * (1 - lambda));
 					Point dir = points_[ni] - points_[vi];
@@ -743,9 +757,7 @@ namespace PowerDiagramGenerator {
 						dir,
 						ni)
 					) == false) {
-						if (mode & POWER_DIAGRAM == VORONOI_DIAGRAM) {
-							break; // only for voronoi
-						}
+						if (mode & VORONOI_DIAGRAM) break; // only for voronoi
 					}
 				}
 
@@ -755,12 +767,17 @@ namespace PowerDiagramGenerator {
 			return 1;
 		}
 
-		void output_cell_wireframe(
+		int output_cell_wireframe(
 			std::string file_path,
 			Cell& cell
 		) {
 			VERBOSE_ONLY_COUT("");
-			std::ofstream out(file_path);
+			std::ofstream out;
+			out.open(file_path);
+			if (!out) {
+				throw std::runtime_error("write file error!");
+				return 0;
+			}
 
 			std::vector<Point> cell_points;
 			std::vector<std::pair<int, int>> cell_edges;
@@ -774,13 +791,20 @@ namespace PowerDiagramGenerator {
 			}
 			out << "v" << " " << cell.x() << " " << cell.y() << " " << cell.z() << " " << "255 0 0" << std::endl;
 			out.close();
+
+			return 1;
 		}
 
-		void output_cells_wireframe(
+		int output_cells_wireframe(
 			std::string file_path
 		) {
 			VERBOSE_ONLY_COUT("");
-			std::ofstream out(file_path);
+			std::ofstream out;
+			out.open(file_path);
+			if (!out) {
+				throw std::runtime_error("write file error!");
+				return 0;
+			}
 			std::map<Point, int> point_map;
 			int p_cnt = 0;
 			for (int vi = 0, vi_end = cells_.size(); vi < vi_end; ++vi) {
@@ -807,14 +831,21 @@ namespace PowerDiagramGenerator {
 	}
 			}
 			out.close();
+
+			return 1;
 		}
 
-		void output_cell_solid(
+		int output_cell_solid(
 			std::string file_path,
 			Cell& cell
 		) {
 			VERBOSE_ONLY_COUT("");
-			std::ofstream out(file_path);
+			std::ofstream out;
+			out.open(file_path);
+			if (!out) {
+				throw std::runtime_error("write file error!");
+				return 0;
+			}
 
 			std::vector<Point> cell_points;
 			std::vector<std::vector<int>> cell_faces;
@@ -831,13 +862,21 @@ namespace PowerDiagramGenerator {
 				out << std::endl;
 			}
 			out.close();
+
+			return 1;
 		}
 
-		void output_cells_solid(
+		int output_cells_solid(
 			std::string file_path
 		) {
 			VERBOSE_ONLY_COUT("");
-			std::ofstream out(file_path);
+			std::ofstream out;
+			out.open(file_path);
+			if (!out) {
+				throw std::runtime_error("write file error!");
+				return 0;
+			}
+
 			std::map<Point, int> point_map;
 			int p_cnt = 0;
 			for (int vi = 0, vi_end = cells_.size(); vi < vi_end; ++vi) {
@@ -867,6 +906,75 @@ namespace PowerDiagramGenerator {
 				}
 			}
 			out.close();
+
+			return 1;
+		}
+
+		int output_cells_connection(
+			std::string file_path,
+			OUTPUT_TYPE type
+		) {
+			VERBOSE_ONLY_COUT("");
+			std::ofstream out;
+			out.open(file_path);
+			if (!out) {
+				throw std::runtime_error("write file error!");
+				return 0;
+			}
+
+			std::map<std::pair<int, int>, int> connect_map;
+			for (int vi = 0, vi_end = cells_.size(); vi < vi_end; ++vi) {
+				Cell* PC = cells_[vi];
+
+				if (type == INFO) {
+					out << vi << " ";
+				}
+
+				if (PC != NULL) {
+					std::vector<CutPlane>* CP = &(PC->cutted_planes());
+
+					std::vector<bool> plane_check(CP->size(), false);
+					for (auto cv : PC->cutted_vertices()) {
+						plane_check[std::get<0>(cv.first)] = true;
+						plane_check[std::get<1>(cv.first)] = true;
+						plane_check[std::get<2>(cv.first)] = true;
+					}
+					for (int i = 0, i_end = plane_check.size(); i < i_end; ++i) {
+						if (plane_check[i]) {
+							int op_i = (*CP)[i].opposite_id();
+							if (op_i != -1) {
+								std::pair<int, int> edge(std::min(vi, op_i), std::max(vi, op_i));
+								if (connect_map.find(edge) == connect_map.end()) {
+									connect_map[edge] = 0;
+								}
+								connect_map[edge]++;
+
+								if (type == INFO) {
+									out << op_i << " ";
+								}
+							}
+						}
+					}
+				}
+
+				if (type == INFO) {
+					out << std::endl;
+				}
+			}
+			if (type == VISUAL) {
+				for (int i = 0, i_end = points_.size(); i < i_end; ++i) {
+					out << "v" << " " << points_[i].x() << " " << points_[i].y() << " " << points_[i].z() << std::endl;
+				}
+				for (auto ep : connect_map) {
+					if (ep.second == 2) {
+						out << "l" << " " << ep.first.first + 1 << " " << ep.first.second + 1 << std::endl;
+					}
+				}
+			}
+
+			out.close();
+
+			return 1;
 		}
 	private:
 		double* get_bounding_box(const double redundancy) {
