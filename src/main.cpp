@@ -20,14 +20,17 @@ int main(int argc, char** argv) {
 	TimeCount TC;
 
 	// read point cloud
+	std::cout << "read point cloud" << std::endl;
 	Generator G;
 	TC.start();
 	try {
 		G.read_pointcloud(argv[argn]);
 	}
 	catch (const std::runtime_error& e) {
-		std::cerr << e.what() << std::endl;
-		return 0;
+		if (G.read_pointcloud(options.output_path + argv[argn]) == 0) {
+			std::cerr << e.what() << std::endl;
+			return 0;
+		}
 	}
 	TC.count_time("read point cloud");
 
@@ -47,18 +50,20 @@ int main(int argc, char** argv) {
 	}
 
 	// generate power diagram
+	std::cout << "generate power diagram" << std::endl;
 	TC.start();
 	G.generate_diagram(options.r, mode);
 	TC.count_time("generate power diagram");
 
 	// output info file
+	std::cout << "output info file" << std::endl;
 	TC.start();
 	for (int i = 0, i_end = options.outputList.size(); i < i_end; ++i) {
 		std::string type = options.outputList[i];
 
 		if (type == "connection" || type == "c") {
 			try {
-				G.output_cells_connection(options.output_path + "cells_visual_connection.obj", INFO);
+				G.output_cells_connection(options.output_path + "cells_visual_connection.txt", INFO);
 			}
 			catch (const std::runtime_error& e) {
 				std::cerr << e.what() << std::endl;
@@ -72,6 +77,7 @@ int main(int argc, char** argv) {
 	TC.count_time("output info file");
 
 	// output visual file
+	std::cout << "output visual file" << std::endl;
 	TC.start();
 	for (int i = 0, i_end = options.visualList.size(); i < i_end; ++i) {
 		std::string type = options.visualList[i];

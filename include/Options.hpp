@@ -1,9 +1,10 @@
 #ifndef OPTIONS_HPP_
 #define OPTIONS_HPP_
 
-#define OUTPUT_PATH			"D://C_Project//power-diagram//data//"
+// #define OUTPUT_PATH			"D://C_Project//power-diagram//data//"
 
 #include <map>
+#include <string>
 
 namespace PowerDiagramGenerator {
 	class Options {
@@ -95,7 +96,16 @@ namespace PowerDiagramGenerator {
 			auto doubleIt = doubleArgsMap.find(option);
 			if (doubleIt != doubleArgsMap.end()) {
 				if (arg.empty() && i + 1 >= argc) return false;
-				*doubleIt->second = atoi(arg.empty() ? argv[++i] : arg.c_str());
+				*doubleIt->second = std::stod(arg.empty() ? argv[++i] : arg.c_str());
+
+				if (i + 1 < argc) {
+					std::string next_argv = std::string(argv[++i]);
+					std::size_t found_dot = next_argv.find('.');
+					if (found_dot != std::string::npos) {
+						std::string arg2 = next_argv.substr(found_dot);
+						*doubleIt->second += std::stod(arg2.c_str());
+					}
+				}
 				return true;
 			}
 
@@ -120,6 +130,7 @@ namespace PowerDiagramGenerator {
 
 		int parseOptions(int argc, char const* const* argv) {
 			for (int i = 1; i < argc; ++i) {
+				// std::cout << "prase:" << " " << argv[i] << std::endl;
 				if (parseAnOption(i, argc, argv) == false) return i;
 			}
 			return argc;

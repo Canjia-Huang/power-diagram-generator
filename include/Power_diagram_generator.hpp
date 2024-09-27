@@ -2,7 +2,7 @@
 #define POWER_DIAGRAM_GENERATOR_HPP_
 
 #ifdef POWER_DIAGRAM_GENERATOR_DEBUG
-#define OUTPUT_PATH			"..//..//data//"
+#define DEBUG_OUTPUT_PATH			"..//..//data//"
 // #define OUTPUT_NEIGHBORS			"DEBUG_Neighbors"
 // #define OUTPUT_CELLS_WIREFRAME	"DEBUG_Cells_Wireframe"
 // #define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
@@ -644,7 +644,7 @@ namespace PowerDiagramGenerator {
 #ifdef OUTPUT_NEIGHBORS
 			{
 				VERBOSE_ONLY_COUT("output neighbors");
-				std::ofstream out(std::string(OUTPUT_PATH) + std::string(OUTPUT_NEIGHBORS) + ".obj");
+				std::ofstream out(std::string(DEBUG_OUTPUT_PATH) + std::string(OUTPUT_NEIGHBORS) + ".obj");
 				for (int i = 0; i < points_nb; ++i) {
 					out << "v" << " " << points[i].x() << " " << points[i].y() << " " << points[i].z() << std::endl;
 				}
@@ -889,7 +889,7 @@ namespace PowerDiagramGenerator {
 
 					for (auto cp : cell_points) {
 						if (point_map.find(cp) == point_map.end()) {
-							out << "v" << " " << cp.x() << " " << cp.y() << " " << cp.z() << " " << "255 255 255" << std::endl;
+							out << "v" << " " << cp.x() << " " << cp.y() << " " << cp.z() << std::endl;
 							point_map[cp] = p_cnt++;
 						}
 					}
@@ -901,8 +901,8 @@ namespace PowerDiagramGenerator {
 						}
 						out << std::endl;
 					}
-					out << "v" << " " << PC->x() << " " << PC->y() << " " << PC->z() << " " << "255 0 0" << std::endl;
-					p_cnt++;
+					// out << "v" << " " << PC->x() << " " << PC->y() << " " << PC->z() << std::endl;
+					// p_cnt++;
 				}
 			}
 			out.close();
