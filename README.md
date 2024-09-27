@@ -4,7 +4,7 @@
 
 This program primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
 
-Nicolas Ray, Dmitry Sokolov, Sylvain Lefebvre, and Bruno Lévy. 2018. Meshless voronoi on the GPU. ACM Trans. Graph. 37, 6, Article 265 (December 2018), 12 pages. https://doi.org/10.1145/3272127.3275092
+> Nicolas Ray, Dmitry Sokolov, Sylvain Lefebvre, and Bruno Lévy. 2018. Meshless voronoi on the GPU. ACM Trans. Graph. 37, 6, Article 265 (December 2018), 12 pages. https://doi.org/10.1145/3272127.3275092
 
 Any bugs or feedback can be directed to the email canjia7@gmail.com
 ## Dependencies
