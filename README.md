@@ -9,7 +9,7 @@ This program primarily relies on CPU-based computations. The data structures use
 Any bugs or feedback can be directed to the email canjia7@gmail.com
 ## Dependencies
 All dependencies are listed below:
-- [nanoflann] (already included)
+- [nanoflann](https://github.com/jlblancoc/nanoflann) (already included)
 ---
 ## Building
 In root directory:
