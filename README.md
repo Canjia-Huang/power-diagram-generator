@@ -3,6 +3,7 @@
 `PowerDiagramGenerator` is a lightweight and user-friendly program for computing or visualizing the power/voronoi diagram of the input (weighted) point cloud, to facilitate subsequent tasks such as rendering or reconstruction.
 
 This program primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
+
 Nicolas Ray, Dmitry Sokolov, Sylvain Lefebvre, and Bruno Lévy. 2018. Meshless voronoi on the GPU. ACM Trans. Graph. 37, 6, Article 265 (December 2018), 12 pages. https://doi.org/10.1145/3272127.3275092
 
 Any bugs or feedback can be directed to the email canjia7@gmail.com
@@ -21,7 +22,8 @@ make
 ---
 ## Usage
 A command-line executable is provided, which reads in an `.xyz` file and generates either the power cell connection relationships or some visualizable `.obj` file.
-For example (result in the teaserfigure, the default read and write paths are set to `data/`):
+
+For example (result in the teaserfigure, the default read and write paths are set to `/data/`):
 ```
 ./build/bin/release/PowerDiagramGenerator.exe -r=0.01 -visual=solid TEST.xyz
 ./build/bin/release/PowerDiagramGenerator.exe -bounding -visual=solid TEST.xyz
