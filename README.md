@@ -1,5 +1,5 @@
 # Power-diagram-generator
-![teaserfigure](data/teaserfigure.png)
+![teaserfigure](pic/teaserfigure.png)
 `PowerDiagramGenerator` is a lightweight and user-friendly program for computing or visualizing the power/voronoi diagram of the input (weighted) point cloud, to facilitate subsequent tasks such as rendering or reconstruction.
 
 This program primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
