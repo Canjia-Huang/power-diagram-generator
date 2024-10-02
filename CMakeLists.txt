@@ -10,6 +10,7 @@ add_compile_definitions(OUTPUT_PATH="${PROJECT_SOURCE_DIR}/data/")
 add_compile_options(/openmp:llvm)
 
 include_directories(${PROJECT_SOURCE_DIR}/include) 
+include_directories(${PROJECT_SOURCE_DIR}/external) 
 
 set(SRC_DIRS ${PROJECT_SOURCE_DIR}/src)
 aux_source_directory(${SRC_DIRS} SRC_SOURCE)
