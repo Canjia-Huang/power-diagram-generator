@@ -361,6 +361,8 @@ namespace PowerDiagramGenerator {
 			// process
 			std::list<int> dangling_planes;
 			while (cutted_edges.size() > 0) {
+				int cur_cutted_edges_nb = cutted_edges.size();
+
 				for (auto it = cutted_edges.begin(); it != cutted_edges.end();) {
 					if (dangling_planes.size() == 0) {
 						dangling_planes.push_back((*it).first);
@@ -389,6 +391,8 @@ namespace PowerDiagramGenerator {
 						it = cutted_edges.erase(it);
 					}
 				}
+
+				if (cutted_edges.size() == cur_cutted_edges_nb) break;
 			}
 
 			// renew
