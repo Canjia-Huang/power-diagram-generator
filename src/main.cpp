@@ -2,121 +2,132 @@
 #include "Options.hpp"
 #include "Time_count.hpp"
 
-#include <fstream>
-
 using namespace PowerDiagramGenerator;
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 	Options& options = getOptions();
-	int argn = options.parseOptions(argc, argv);
+	int argn = options.parseOptions(argc, argv); // parse all options
 
+	// implement all options
 	if (options.showHelp || argn + 1 != argc) {
-		std::cerr << "Usage: " << argv[0] << " [options] points.xyz" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " " << "[options] input_file_path" << std::endl;
 		std::cerr << std::endl;
 		options.showOptions(std::cerr);
-		return 1;
+		std::cout << "Example: " << argv[0] << " " << "" << std::endl;
+		return 0;
 	}
 
 	TimeCount TC;
-
-	// read point cloud
-	std::cout << "read point cloud" << std::endl;
 	Generator G;
-	TC.start();
-	try {
-		G.read_pointcloud(argv[argn]);
-	}
-	catch (const std::runtime_error& e) {
-		if (G.read_pointcloud(options.output_path + argv[argn]) == 0) {
-			std::cerr << e.what() << std::endl;
-			return 0;
-		}
-	}
-	TC.count_time("read point cloud");
 
-	// set mode
+	// reading point cloud
+	std::cout << "Reading point cloud..." << std::endl;
+	{
+		TC.start();
+		if (G.read_pointcloud(argv[argn]) == 0) {
+			if (G.read_pointcloud(options.output_path + argv[argn]) == 0) {
+				std::cerr << "Error reading point cloud" << std::endl;
+				return 0;
+			}
+		}
+		TC.count_time("reading point cloud");
+	}
+
+	// setting mode
 	int mode = 0;
-	if (options.voronoi) {
-		mode |= MODE::VORONOI_DIAGRAM;
-	}
-	else {
-		mode |= MODE::POWER_DIAGRAM;
-	}
-	if (options.bounding) {
-		mode |= MODE::BOUNDING_BOX;
-	}
-	if (options.exact) {
-		mode |= MODE::EXACT_CALCULATION;
+	{
+		if (options.voronoi) mode |= MODE::VORONOI_DIAGRAM;
+		if (options.bounding) mode |= MODE::ENTIRE_BOUNDING_BOX;
+		if (options.exact) mode |= MODE::EXACT_CALCULATION;
 	}
 
 	// generate power diagram
-	std::cout << "generate power diagram" << std::endl;
-	TC.start();
-	G.generate_diagram(options.r, mode);
-	TC.count_time("generate power diagram");
+	std::cout << "Generating power diagram..." << std::endl;
+	{
+		TC.start();
+		G.generate_diagram(options.r, mode);
+		TC.count_time("generating power diagram");
+	}
 
 	// output info file
-	std::cout << "output info file" << std::endl;
-	TC.start();
-	for (int i = 0, i_end = options.outputList.size(); i < i_end; ++i) {
-		std::string type = options.outputList[i];
+	if (!options.outputList.empty()) {
+		std::cout << "Outputting info file to:" << options.output_path << std::endl;
+		{
+			TC.start();
+			for (size_t i = 0, i_end = options.outputList.size(); i < i_end; ++i) {
+				std::ofstream out;
 
-		if (type == "connection" || type == "c") {
-			try {
-				G.output_cells_connection(options.output_path + "cells_visual_connection.txt", INFO);
+				if (std::string type = options.outputList[i];
+					type == "neighbor" || type == "n") {
+					out.open(options.output_path + "cells_neighbors.txt");
+					if (out.is_open()) {
+						G.output_cells_info(out, "neighbor");
+					}
+					else {
+						std::cerr << "Error writing file!" << std::endl;
+					}
+				}
+				else {
+					std::cerr << "Error OUTPUT_TYPE!" << std::endl;
+				}
+
+				out.close();
 			}
-			catch (const std::runtime_error& e) {
-				std::cerr << e.what() << std::endl;
-				return 0;
-			}
-		}
-		else {
-			std::cerr << "output type error!" << std::endl;
+			TC.count_time("outputting info file");
 		}
 	}
-	TC.count_time("output info file");
 
 	// output visual file
-	std::cout << "output visual file" << std::endl;
-	TC.start();
-	for (int i = 0, i_end = options.visualList.size(); i < i_end; ++i) {
-		std::string type = options.visualList[i];
+	if (!options.visualList.empty()) {
+		std::cout << "Outputting visual file to:" << options.output_path << std::endl;
+		{
+			TC.start();
+			for (size_t i = 0, i_end = options.visualList.size(); i < i_end; ++i) {
+				std::ofstream out;
 
-		if (type == "wireframe" || type == "wire" || type == "w") {
-			try {
-				G.output_cells_wireframe(options.output_path + "cells_visual_wireframe.obj");
-			} catch (const std::runtime_error& e) {
-				std::cerr << e.what() << std::endl;
-				return 0;
+				if (std::string type = options.visualList[i];
+					type == "wireframe" || type == "wire" || type == "w") {
+					out.open(options.output_path + "cells_visual_wireframe.obj");
+					if (out.is_open()) {
+						int start_id = 0;
+						G.output_cells_wireframe(out);
+					}
+					else {
+						std::cerr << "Error writing file!" << std::endl;
+					}
+				}
+				else if (type == "polyhedron" || type == "p") {
+					out.open(options.output_path + "cells_visual_polyhedron.obj");
+					if (out.is_open()) {
+						int start_id = 0;
+						G.output_cells_polyhedron(out, start_id);
+					}
+					else {
+						std::cerr << "Error writing file!" << std::endl;
+					}
+				}
+				else if (type == "connection" || type == "c") {
+					out.open(options.output_path +  "cells_visual_connection.obj");
+					if (out.is_open()) {
+						G.output_cells_info(out, "connection");
+					}
+					else {
+						std::cerr << "Error writing file!" << std::endl;
+					}
+				}
+				else {
+					std::cerr << "ERROR VISUAL_TYPE!" << std::endl;
+				}
+
+				out.close();
 			}
-		}
-		else if (type == "solid" || type == "s") {
-			try {
-				G.output_cells_solid(options.output_path + "cells_visual_solid.obj");
-			}
-			catch (const std::runtime_error& e) {
-				std::cerr << e.what() << std::endl;
-				return 0;
-			}
-		}
-		else if (type == "conection" || type == "c") {
-			try {
-				G.output_cells_connection(options.output_path + "cells_visual_connection.obj", VISUAL);
-			}
-			catch (const std::runtime_error& e) {
-				std::cerr << e.what() << std::endl;
-				return 0;
-			}
-		}
-		else {
-			std::cerr << "output type error!" << std::endl;
+			TC.count_time("output visual file");
 		}
 	}
-	TC.count_time("output visual file");
 
-	if (options.timecount) {
-		TC.print_time_count();
-	}
+	// print time count information
+	if (options.timecount) TC.print_time_count();
 
 	return 1;
 }

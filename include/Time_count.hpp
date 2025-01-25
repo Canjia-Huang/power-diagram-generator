@@ -9,8 +9,7 @@
 namespace PowerDiagramGenerator {
 	class TimeCount {
 	public:
-		TimeCount() {
-		}
+		TimeCount() = default;
 		~TimeCount() {
 			(std::list<std::pair<std::string, double>>()).swap(time_pairs_);
 			(std::list<double>()).swap(time_duration_);
@@ -21,9 +20,9 @@ namespace PowerDiagramGenerator {
 		}
 
 		void stop() {
-			auto cur_time = std::chrono::system_clock::now();
-			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(cur_time - start_time_);
-			double duration_time = double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den;
+			const auto cur_time = std::chrono::system_clock::now();
+			const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(cur_time - start_time_);
+			const double duration_time = static_cast<double>(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den;
 
 			time_duration_.push_back(duration_time);
 		}
@@ -32,48 +31,48 @@ namespace PowerDiagramGenerator {
 			(std::list<double>()).swap(time_duration_);
 		}
 
-		void count_time(const std::string func_name) {
-			if (time_duration_.size() == 0) {
+		void count_time(const std::string& func_name) {
+			if (time_duration_.empty()) {
 				stop();
 			}
 
 			double total_time = 0;
-			for (auto td : time_duration_) {
-				total_time += td;
+			for (auto td_it = time_duration_.begin(); td_it != time_duration_.end(); ++td_it) {
+				total_time += *td_it;
 			}
-			time_pairs_.emplace_back(std::make_pair(func_name, total_time));
+			time_pairs_.emplace_back(func_name, total_time);
 
 			reset();
 		}
 
-		void cover_count_time(const std::string func_name) {
-			if (time_duration_.size() == 0) {
+		void cover_count_time(const std::string& func_name) {
+			if (time_duration_.empty()) {
 				stop();
 			}
 
 			double total_time = 0;
-			for (auto td : time_duration_) {
-				total_time += td;
+			for (auto td_it = time_duration_.begin(); td_it != time_duration_.end(); ++td_it) {
+				total_time += *td_it;
 			}
 
 			time_pairs_.pop_back();
-			time_pairs_.emplace_back(std::make_pair(func_name, total_time));
+			time_pairs_.emplace_back(func_name, total_time);
 
 			reset();
 		}
 
-		void print_time_count() {
+		void print_time_count() const {
 			double total_time = 0;
 
 			std::cout << "---------- TIME COUNT ----------" << std::endl;
-			for (auto tp : time_pairs_) {
-				std::cout << tp.first << ":" << std::endl;
+			for (auto tp_it = time_pairs_.begin(); tp_it != time_pairs_.end(); ++tp_it) {
+				std::cout << tp_it->first << ":" << std::endl;
 				for (int j = 0; j < indent_num_; j++) {
 					std::cout << "\t";
 				}
-				std::cout << std::fixed << "\033[33m" << tp.second << "\033[0m" << ".sec" << std::endl;
+				std::cout << std::fixed << "\033[33m" << tp_it->second << "\033[0m" << ".sec" << std::endl;
 
-				total_time += tp.second;
+				total_time += tp_it->second;
 			}
 			std::cout << "Total time:" << std::endl;
 			for (int j = 0; j < indent_num_; j++) {
@@ -94,5 +93,5 @@ namespace PowerDiagramGenerator {
 		int indent_num_ = 1;
 	}; // class TimeCount
 	
-} // namespace PowerDiagramGenerator
+}
 #endif

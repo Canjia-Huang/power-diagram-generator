@@ -1,6 +1,6 @@
 # Power-diagram-generator
 ![teaserfigure](pic/teaserfigure.png)
-`PowerDiagramGenerator` is a lightweight and user-friendly program for computing or visualizing the power/voronoi diagram of the input (weighted) point cloud, to facilitate subsequent tasks such as rendering or reconstruction.
+`PowerDiagramGenerator` is a lightweight and user-friendly program for computing or visualizing the Power/Voronoi diagram of the input (weighted) point cloud, to facilitate subsequent tasks such as rendering or reconstruction.
 
 This program primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
 
@@ -25,10 +25,10 @@ A command-line executable is provided, which reads in an `.xyz` file and generat
 
 For example (result in the teaserfigure, the default read and write paths are set to `/data/`):
 ```
-./build/bin/release/PowerDiagramGenerator.exe -r=0.01 -visual=solid TEST.xyz
-./build/bin/release/PowerDiagramGenerator.exe -bounding -visual=solid TEST.xyz
+./build/bin/release/PowerDiagramGenerator -r=0.01 -v=p TEST.xyz
+./build/bin/release/PowerDiagramGenerator -r=0.001 --b -v=p TEST.xyz
 ```
-More usage instructions can be obtained by using the `-help` command.
+More usage instructions can be obtained by using the `--help` command.
 ### File format
 Support point cloud input formats including `.obj`, `.off`, `.xyz`. It is worth noting that only the `.xyz` format supports input of weighted point cloud, with the format as follows:
 ```
