@@ -30,7 +30,7 @@ For example (result in the teaserfigure, the default read and write paths are se
 ```
 More usage instructions can be obtained by using the `--help` command:
 
-'''
+```
 OPTIONS:
     --bounding|--box|--b: initialize the initial box for each point as the bounding box of the entire point cloud
     --exact|--e: completely exactly compute the power diagram, it may result in an increase in computational overhead, only for verification
@@ -47,7 +47,7 @@ OPTIONS:
             connection|c: the connection relationships between points
             polyhedron|p: the polyhedron of power cells
             wireframe|wire|w: the wireframe of power cells
-'''
+```
 
 ### File format
 Support point cloud input formats including `.obj`, `.off`, `.xyz`. It is worth noting that only the `.xyz` format supports input of weighted point cloud, with the format as follows:
