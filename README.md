@@ -28,7 +28,27 @@ For example (result in the teaserfigure, the default read and write paths are se
 ./build/bin/release/PowerDiagramGenerator -r=0.01 -v=p TEST.xyz
 ./build/bin/release/PowerDiagramGenerator -r=0.001 --b -v=p TEST.xyz
 ```
-More usage instructions can be obtained by using the `--help` command.
+More usage instructions can be obtained by using the `--help` command:
+
+'''
+OPTIONS:
+    --bounding|--box|--b: initialize the initial box for each point as the bounding box of the entire point cloud
+    --exact|--e: completely exactly compute the power diagram, it may result in an increase in computational overhead, only for verification
+    --help|--h: show this help
+    -output|-o=[OUTPUT_TYPE]: generate the output of the power diagram in the form of the specified data type
+        OUTPUT_TYPE:
+            neighbor|n: the neighbors information between points
+    -path|-op|-p=[string]: set the output path [default ..//..//data//]
+    -radius|-r=[double]: set the radius of the initial box for each point [default 0]
+    --timecount|--tc|--t: Output the time count information
+    --voronoi|--vor|--v: compute the voronoi diagram
+    -visual|-vis|-v=[VISUAL_TYPE]: generate the visual output of the power diagram in the form of the specified data type.obj
+        VISUAL_TYPE:
+            connection|c: the connection relationships between points
+            polyhedron|p: the polyhedron of power cells
+            wireframe|wire|w: the wireframe of power cells
+'''
+
 ### File format
 Support point cloud input formats including `.obj`, `.off`, `.xyz`. It is worth noting that only the `.xyz` format supports input of weighted point cloud, with the format as follows:
 ```
