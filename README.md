@@ -2,7 +2,7 @@
 ![teaserfigure](pic/teaserfigure.png)
 `PowerDiagramGenerator` is a lightweight and user-friendly program for computing or visualizing the Power/Voronoi diagram of the input (weighted) point cloud, to facilitate subsequent tasks such as rendering or reconstruction.
 
-This program primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
+This program directly performs the half-plane cutting process of a polyhedra cell, and primarily relies on CPU-based computations. The data structures used in this program are partially derived from:
 
 > Nicolas Ray, Dmitry Sokolov, Sylvain Lefebvre, and Bruno Lévy. 2018. Meshless voronoi on the GPU. ACM Trans. Graph. 37, 6, Article 265 (December 2018), 12 pages. https://doi.org/10.1145/3272127.3275092
 
