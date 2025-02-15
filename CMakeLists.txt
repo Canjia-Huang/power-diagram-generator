@@ -10,6 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PUBLISH_BIN_DEBUG})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PUBLISH_BIN_RELEASE})
 # set output file directory
 add_compile_definitions(OUTPUT_PATH="${PROJECT_SOURCE_DIR}/data/")
+# add_compile_definitions(POWER_DIAGRAM_GENERATOR_VERBOSE) # use to verbose
 
 # find OpenMP (not necessary)
 find_package(OpenMP)

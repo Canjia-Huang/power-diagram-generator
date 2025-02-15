@@ -9,7 +9,7 @@
 // #define OUTPUT_CELLS_SOLID		"DEBUG_Cells_Solid"
 #endif
 
-#define POWER_DIAGRAM_GENERATOR_VERBOSE
+// #define POWER_DIAGRAM_GENERATOR_VERBOSE
 #ifdef POWER_DIAGRAM_GENERATOR_VERBOSE
 #	define VERBOSE_ONLY_COUT(x) std::cout << "[" << __FUNCTION__ << "]" << " " << x  << std::endl
 #	define VERBOSE_ONLY_WARNING(x) std::cout << "[File:" << __FILE__ << "]" << "[Line:" << __LINE__ << "]" << " " << x << std::endl
